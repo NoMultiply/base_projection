@@ -80,7 +80,7 @@ AddClassPostConstruct("widgets/controls", function(self)
     end
 end)
 
-local key_toggle_record = GetModConfigData("key_toggle_record") and GLOBAL[GetModConfigData("key_toggle_record")] or GLOBAL.KEY_F1
+local key_toggle_record = GetModConfigData("key_toggle_record") ~= -1 and GLOBAL[GetModConfigData("key_toggle_record")] or -1
 TheInput:AddKeyUpHandler(key_toggle_record, function()
     if IsDefaultScreen() then
         if controls and controls.BSPJRecordPanel then
@@ -93,7 +93,7 @@ TheInput:AddKeyUpHandler(key_toggle_record, function()
     end
 end)
 
-local key_toggle_play = GetModConfigData("key_toggle_play") and GLOBAL[GetModConfigData("key_toggle_play")] or GLOBAL.KEY_F2
+local key_toggle_play = GetModConfigData("key_toggle_play") ~= -1 and GLOBAL[GetModConfigData("key_toggle_play")] or -1
 TheInput:AddKeyUpHandler(key_toggle_play, function()
     if IsDefaultScreen() then
         if controls and controls.BSPJPlayPanel then
@@ -1109,9 +1109,9 @@ end)
 local oldNetworking_Say = GLOBAL.Networking_Say
 GLOBAL.Networking_Say = function(guid, userid, name, prefab, message, ...)
     if GLOBAL.BSPJ.DATA.CAPTURE_ANNOUNCE and message and ThePlayer and (GLOBAL.BSPJ.DATA.CAPTURE_SELF or userid ~= ThePlayer.userid) then
-        -- '[BSPJ] 坐标(%.2f, %.2f, %.2f)需要一个"%s"(%s#%d#%.2f#%s#%s#%s#%.2f#%.2f#%.2f)'
+        -- '[BSPJ] 坐标(%.2f, %.2f, %.2f)需要一个"%s" | (%s#%d#%.2f#%s#%s#%s#%.2f#%.2f#%.2f)'
         local _, _, x, y, z, n, p, layer, rotation, build, anim, bank, s1, s2, s3 = string.find(
-                message, '%[BSPJ][^(]-%(([^,]*),%s*([^,]*),%s*([^)]*)%)[^"]-"(.*)"\n%(([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)%)')
+                message, '%[BSPJ][^(]-%(([^,]*),%s*([^,]*),%s*([^)]*)%)[^"]-"(.*)" | %(([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)#([^#]*)%)')
         if x and y and z and n and p and layer and rotation and build and s1 and s2 and s3 then
             x, y, z, layer, rotation, s1, s2, s3 = tonumber(x), tonumber(y), tonumber(z), tonumber(layer), tonumber(rotation), tonumber(s1), tonumber(s2), tonumber(s3)
             if anim == 'nil' then

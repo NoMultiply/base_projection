@@ -640,10 +640,11 @@ local BSPJPanelList = Class(Screen, function(self, apply_cb)
     end)
 
     AddButton(0, -200, 200, 40, STRINGS.BSPJ.BUTTON_TEXT_IMPORT2, function()
+        local URL = TUNING.FIX_QUERYSERVER and "https://wu-c.cn/bspj_files/" or "http://localhost:53737/bspj_files/"
         TheFrontEnd:PushScreen(GetInputString(STRINGS.BSPJ.TITLE_TEXT_IMPORT_SECRET, '', function(dialog, value)
             dialog:Close()
-            TheSim:QueryServer("http://localhost:53737/bspj_files/" .. value .. '.json', function(result, isSuccessful, resultCode)
-                if isSuccessful and resultCode ~= 404 then
+            TheSim:QueryServer(URL .. value .. '.json', function(result, isSuccessful, resultCode)
+                if isSuccessful and resultCode == 200 and result then
                     local record = json.decode(result)
                     if ValidateBaseData(record) then
                         table.insert(BSPJ.DATA.RECORDS, 1, record)
@@ -656,8 +657,6 @@ local BSPJPanelList = Class(Screen, function(self, apply_cb)
                 ThePlayer.components.talker:Say(STRINGS.BSPJ.MESSAGE_IMPORT_FAILED)
             end, "GET")
         end, 440))
-        
-        -- TheFrontEnd:PushScreen(ConfirmDialog('科雷禁用了第三方服务器的访问接口，请使用“从文件导入”。', function() end, 600))
     end)
 
     AddButton(0, -240, 200, 40, STRINGS.BSPJ.BUTTON_TEXT_CLOSE, function()

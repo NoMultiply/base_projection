@@ -1,25 +1,12 @@
 name = "Base Projection (基地投影)"
 description = [[
-- 优化不存在的物品在投影时的贴图
-- 增加实体统计和材料统计
-- 支持管理员一键生成基地
-- 在选项中增加显示名称、原版几何兼容开关
-- 增加对宣告的支持
-- 应用上次增加记忆功能
-
 - 在游戏中按F1开始基地录入，录入时通过鼠标左键选定基地中心后，左键单击可以添加或删除实体，双击添加同类实体，按住拖拽添加一个区域内的实体；
 - 选完实体后，点击面板中的“保存”按钮即可保存数据；
 - 按F2开始基地投影，选定中心后，点击面板中的“打开列表”按钮，选择要投影的数据即可；
 - 摆放时鼠标会自动吸附到投影点上，可以轻松的复原基地。
-
-- 优化性能，减少掉帧
-- 支持shift双击自动种植和建造
-- 支持角度旋转
-- 增加建造顺序提示
-- 加入部分预设
 ]]
-author = "NoMu"
-version = "2.0.2"
+author = "NoMu，冰冰羊"
+version = "2.0.3"
 
 folder_name = folder_name or "base_projection"
 if not folder_name:find("workshop-") then
@@ -63,11 +50,13 @@ configuration_options = {
         label = "基地录入快捷键（Base Record Shortcut）",
         options = key_options,
         default = "KEY_F1",
+        is_keybind = true, -- 兼容配置扩展模组
     },
     {
         name = "key_toggle_play",
         label = "基地预览快捷键（Base Preview Shortcut）",
         options = key_options,
         default = "KEY_F2",
+        is_keybind = true, -- 兼容配置扩展模组
     }
 }
