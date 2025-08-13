@@ -4,12 +4,6 @@ GLOBAL.setmetatable(env, {
     end
 })
 
---local function IsDefaultScreen()
---    local active_screen = GLOBAL.TheFrontEnd:GetActiveScreen()
---    local screen = active_screen and active_screen.name or ""
---    return screen:find("HUD") ~= nil and GLOBAL.ThePlayer ~= nil and not GLOBAL.ThePlayer.HUD:IsChatInputScreenOpen() and not GLOBAL.ThePlayer.HUD.writeablescreen
---end
-
 local function IsDefaultScreen()
     local active_screen = GLOBAL.TheFrontEnd:GetActiveScreen()
     local screen = active_screen and active_screen.name or ""
@@ -216,6 +210,23 @@ end
 local function IsBSPJPlayEnable()
     return IsDefaultScreen() and controls and controls.BSPJPlayPanel and controls.BSPJPlayPanel.IsShow
 end
+
+-- 投影基地时禁用官方网格辅助
+AddClassPostConstruct("components/placer", function(self)
+    local old_Placer_IsAxisAlignedPlacement = self.IsAxisAlignedPlacement
+    self.IsAxisAlignedPlacement = function(self, ...)
+        if IsBSPJPlayEnable() and GLOBAL.IsBSPJPlayHelperReady() then
+            if self.axisalignedhelpers then
+                if self.axisalignedhelpers.parent:IsValid() then
+                    self.axisalignedhelpers.parent:Remove()
+                end
+                self.axisalignedhelpers = nil
+            end
+            return false
+        end
+        return old_Placer_IsAxisAlignedPlacement(self, ...)
+    end
+end)
 
 GLOBAL.BSPJGetTurfCenter = function(px, py, pz)
     local x, y = TheWorld.Map:GetTileCoordsAtPoint(px, py, pz)
