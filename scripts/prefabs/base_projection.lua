@@ -1,6 +1,8 @@
 local SPACING_DICT = require("utils/spacing")
+local Upvaluehelper = require("utils/base_projection_upvaluehelper")
 local valid_prefab = {}
 local unknown_anim_prefabs = { mighty_gym = true, singingshell_octave3 = true, singingshell_octave4 = true, singingshell_octave5 = true }
+local modprefabinitfns = Upvaluehelper.GetUpvalue(RegisterPrefabsImpl, "modprefabinitfns")
 
 local function anchor_fn()
     local inst = CreateEntity()
@@ -68,7 +70,7 @@ local function anchor_fn()
         self.AnimState:SetBank("unknown_prefab")
         _RealAnimState:SetMultColour(0, 0, 0, 0)
 
-        --  清理上一次的
+        -- 清理上一次的
         if self.proxy_ent and self.proxy_ent:IsValid() then
             self.proxy_ent:Remove()
             self.proxy_ent = nil
@@ -76,12 +78,44 @@ local function anchor_fn()
 
         -- 模拟生成这个物品
         if Prefabs and Prefabs[item.prefab] then
+
+            -- 临时屏蔽其它模组的AddPrefabPostInit（还有一个PrefabPostInitAny，用的较少，暂时不屏蔽）
+            local _modprefabinitfns = modprefabinitfns[item.prefab]
+            modprefabinitfns[item.prefab] = {}
             local proxy = SpawnPrefab(item.prefab)
+            modprefabinitfns[item.prefab] = _modprefabinitfns
+
             if proxy and proxy:IsValid() then
-                -- 去除物理碰撞和网络组件
+
+                -- 去除定时任务和唤醒事件
+                if proxy.CancelAllPendingTasks then
+                    proxy:CancelAllPendingTasks()
+                end
+                proxy.OnEntityWake = nil
+                proxy.OnEntitySleep = nil
+
+                -- 去除StateGraph
+                if proxy.ClearStateGraph then
+                    proxy:ClearStateGraph()
+                end
+
+                -- 去除AI 逻辑
+                if proxy.SetBrain then
+                    proxy:SetBrain(nil)
+                end
+
+                -- 禁音处理
+                if proxy.SoundEmitter then
+                    proxy.SoundEmitter:KillAllSounds()
+                end
+
+                -- 去除物理碰撞、光源和地图图标
                 if proxy.Physics then proxy.Physics:SetActive(false) end
                 if proxy.Light then proxy.Light:Enable(false) end
                 if proxy.MiniMapEntity then proxy.MiniMapEntity:SetEnabled(false) end
+
+                proxy:RemoveTag("iswet")
+                proxy:RemoveTag("wet")
 
                 proxy:AddTag("FX")
                 proxy:AddTag("NOCLICK")
@@ -93,15 +127,47 @@ local function anchor_fn()
                     proxy.AnimState:SetMultColour(0, 1, 0, 0.8)
 
                     local current_bank = proxy.AnimState:GetCurrentBankName()
-                    if item.anim and item.anim ~= "" then
-                        if item.bank and item.bank ~= current_bank then
-                            -- 如果状态不一致，强制覆盖为存档记录的 Build 和 Bank
-                            if item.build then
-                                proxy.AnimState:SetBuild(item.build)
-                            end
-                            proxy.AnimState:SetBank(item.bank)
+                    local bank = item.bank
+                    local build = item.build
+                    local anim = item.anim
+
+                    -- 对栅栏类的修复
+                    if proxy and proxy:HasTag("fence") then
+
+                        if not build or build == "" then
+                            build = item.prefab
+                            if item.prefab == "fence_junk" then build = "fence_junk_build" end
                         end
-                        proxy.AnimState:PlayAnimation(item.anim)
+
+                        if not anim or anim == "" then
+                            anim = "idle"
+                        end
+
+                        local rot = item.rotation or 0
+                        local rot_enum = math.floor((math.floor(rot + 0.5) / 45) % 8)
+
+                        -- 偶数角度为纵向(narrow)，奇数角度为横向(wide)
+                        if rot_enum % 2 == 0 then
+                            if item.prefab == "fence_junk" then
+                                bank = "fence_thin_junk"
+                            else
+                                bank = item.prefab .. "_thin"
+                            end
+                        else
+                            bank = item.prefab
+                        end
+                    end
+
+                    if anim and anim ~= "" then
+                        if (bank and bank ~= "" and bank ~= current_bank) or (proxy:HasTag("fence")) then
+                            if build and build ~= "" then
+                                proxy.AnimState:SetBuild(build)
+                            end
+                            if bank and bank ~= "" then
+                                proxy.AnimState:SetBank(bank)
+                            end
+                        end
+                        proxy.AnimState:PlayAnimation(anim)
                     end
                 end
 
@@ -243,7 +309,6 @@ local function anchor_fn()
         end
     end
 
-    -- 防止内存泄漏
     inst:ListenForEvent("onremove", function(_inst)
         if _inst.proxy_ent and _inst.proxy_ent:IsValid() then
             _inst.proxy_ent:Remove()
@@ -380,8 +445,10 @@ local function record_helper_fn()
                 local sx, sy, sz = anchor.Transform:GetScale()
                 local rotation = anchor.Transform:GetFacingRotation()
                 local layer = anchor.AnimState:GetLayer()
+                local clean_name = anchor.GetBasicDisplayName and anchor:GetBasicDisplayName() or anchor:GetDisplayName()
+
                 table.insert(record, {
-                    name = anchor:GetDisplayName(), prefab = anchor.prefab, x = x, y = y, z = z,
+                    name = clean_name, prefab = anchor.prefab, x = x, y = y, z = z,
                     build = build, bank = bank, anim = anim, scale = { sx, sy, sz },
                     rotation = rotation, layer = layer
                 })
@@ -444,6 +511,9 @@ local function play_helper_fn()
         self.anchors = {}
         local bx, bz = record.x, record.z
         local max_spacing, min_spacing
+        -- 使用客机环境生成Prefab
+        local _ismastersim = TheWorld.ismastersim
+        TheWorld.ismastersim = false
         for idx, item in ipairs(record.data) do
             local anchor = SpawnPrefab('base_anchor')
             anchor:SetPreview(item)
@@ -470,6 +540,7 @@ local function play_helper_fn()
             end
             self.anchors[anchor] = { dx = item.x - bx, dz = item.z - bz }
         end
+        TheWorld.ismastersim = _ismastersim
         if BSPJ.DATA.ORDER_TIPS then
             for anchor in pairs(self.anchors) do
                 if anchor.record_spacing then
