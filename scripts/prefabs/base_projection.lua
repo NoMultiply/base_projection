@@ -225,9 +225,13 @@ local function anchor_fn()
 
         self.label:Enable(true)
         if BSPJ.DATA.ORDER_TIPS and self.record_spacing then
+            self.label:Enable(true)
             self.label:SetText(item.name .. '\n' .. tostring(self.record_spacing))
-        else
+        elseif BSPJ.DATA.SHOW_NAME then
+            self.label:Enable(true)
             self.label:SetText(item.name)
+        else
+            self.label:Enable(false)
         end
     end
 
@@ -547,7 +551,7 @@ local function play_helper_fn()
                     anchor.spacing_color = (anchor.record_spacing - min_spacing) / (max_spacing - min_spacing) * 0.9 + 0.1
                     anchor.AnimState:SetAddColour(0, 0, 0, 0)
                     anchor.label:Enable(true)
-                    if anchor.record_name then
+                    if BSPJ.DATA.SHOW_NAME then
                         anchor.label:SetText(anchor.record_name .. '\n' .. tostring(anchor.record_spacing))
                     else
                         anchor.label:SetText(tostring(anchor.record_spacing))
