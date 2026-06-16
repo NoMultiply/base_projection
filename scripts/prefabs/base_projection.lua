@@ -314,9 +314,12 @@ local function anchor_fn()
     end
 
     inst:ListenForEvent("onremove", function(_inst)
+        local _ismastersim = TheWorld.ismastersim
+        TheWorld.ismastersim = false
         if _inst.proxy_ent and _inst.proxy_ent:IsValid() then
             _inst.proxy_ent:Remove()
         end
+        TheWorld.ismastersim = _ismastersim
     end)
 
     return inst
