@@ -7,7 +7,7 @@ description = [[
 理论上兼容所有模组
 ]]
 author = "NoMu，冰冰羊，THEDOG"
-version = "2.0.6.3"
+version = "2.0.6.4"
 
 folder_name = folder_name or "base_projection"
 if not folder_name:find("workshop-") then

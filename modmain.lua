@@ -652,7 +652,7 @@ local function SpawnPreviews(prefab, act_type, prefab_inst)
                                 placer.Transform:SetRotation(rotation or 0)
                             end
                             placer.rotation = rotation
-                            placer:RemoveComponent('placer')
+                            -- placer:RemoveComponent('placer')
                             placer:RemoveTag('CLASSIFIED')
                             placer.Transform:SetPosition(pos:Get())
                             placer.AnimState:SetAddColour(0, 0.5, 0, 0)
